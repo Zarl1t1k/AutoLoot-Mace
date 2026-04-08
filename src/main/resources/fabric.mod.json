@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "autolootmace",
+  "version": "${version}",
+  "name": "AutoLoot Mace",
+  "description": "Автоматически выбивает нужный лут из хранилищ (навершие булавы, зловещая бутылочка и др.)",
+  "authors": [
+    "AutoLootMace"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/autolootmace/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.autolootmace.client.AutoLootMaceClient"
+    ]
+  },
+  "mixins": [
+    "autolootmace.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}
