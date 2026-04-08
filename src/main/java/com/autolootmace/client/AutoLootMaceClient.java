@@ -36,13 +36,13 @@ public class AutoLootMaceClient implements ClientModInitializer {
 
         // Обработка нажатий клавиш
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (configKey.wasPressed()) {
+            if (configKey.wasPressed()) {
                 if (client.currentScreen == null) {
                     client.setScreen(new ConfigScreen(null));
                 }
             }
 
-            while (toggleKey.wasPressed()) {
+            if (toggleKey.wasPressed()) {
                 ModConfig config = ModConfig.getInstance();
                 config.modEnabled = !config.modEnabled;
                 config.save();
