@@ -1,12 +1,11 @@
 package com.autolootmace.client;
 
 import com.autolootmace.config.ModConfig;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,14 +15,14 @@ public class ConfigScreen extends Screen {
 
     private final Screen parent;
     private final ModConfig config;
-    private final List<ButtonWidget> toggleButtons = new ArrayList<>();
+    private final List<Button> toggleButtons = new ArrayList<>();
 
     private static final int COLOR_PANEL  = 0xFF16213E;
     private static final int COLOR_ACCENT = 0xFF0F3460;
     private static final int COLOR_GREEN  = 0xFF00D4AA;
 
     public ConfigScreen(Screen parent) {
-        super(Text.literal("§6⚙ §lAutoLoot Mace §r§7- Настройки"));
+        super(Component.literal("§6⚙ §lAutoLoot Mace §r§7- Настройки"));
         this.parent = parent;
         this.config = ModConfig.getInstance();
     }
@@ -36,16 +35,15 @@ public class ConfigScreen extends Screen {
         int buttonHeight = 24;
         int spacing = 30;
 
-        // Кнопка включения/выключения мода
-        ButtonWidget enableButton = ButtonWidget.builder(
+        Button enableButton = Button.builder(
                 getEnableText(),
                 btn -> {
                     config.modEnabled = !config.modEnabled;
                     config.save();
                     btn.setMessage(getEnableText());
                 }
-        ).dimensions(centerX - buttonWidth / 2, startY, buttonWidth, buttonHeight).build();
-        this.addDrawableChild(enableButton);
+        ).bounds(centerX - buttonWidth / 2, startY, buttonWidth, buttonHeight).build();
+        this.addRenderableWidget(enableButton);
 
         int lootStartY = startY + spacing + 20;
 
@@ -55,7 +53,7 @@ public class ConfigScreen extends Screen {
             final String itemName = entry.getValue();
             int y = lootStartY + i * spacing;
 
-            ButtonWidget toggleBtn = ButtonWidget.builder(
+            Button toggleBtn = Button.builder(
                     getItemText(itemId, itemName),
                     btn -> {
                         boolean newState = !config.isItemEnabled(itemId);
@@ -63,117 +61,123 @@ public class ConfigScreen extends Screen {
                         config.save();
                         btn.setMessage(getItemText(itemId, itemName));
                     }
-            ).dimensions(centerX - buttonWidth / 2, y, buttonWidth, buttonHeight)
-             .tooltip(Tooltip.of(Text.literal("Нажмите, чтобы " + (config.isItemEnabled(itemId) ? "отключить" : "включить") + " авто-выбивание")))
+            ).bounds(centerX - buttonWidth / 2, y, buttonWidth, buttonHeight)
+             .tooltip(Tooltip.create(Component.literal("Нажмите для переключения авто-выбивания")))
              .build();
 
-            this.addDrawableChild(toggleBtn);
+            this.addRenderableWidget(toggleBtn);
             toggleButtons.add(toggleBtn);
             i++;
         }
 
         int bottomY = lootStartY + i * spacing + 20;
 
-        // Слайдер задержки
-        SliderWidget delaySlider = new SliderWidget(
-                centerX - buttonWidth / 2, bottomY, buttonWidth, buttonHeight,
-                Text.literal("Задержка: " + config.clickDelayMs + " мс"),
-                (config.clickDelayMs - 50.0) / 950.0
-        ) {
-            @Override
-            protected void updateMessage() {
-                int ms = (int)(50 + value * 950);
-                setMessage(Text.literal("§7Задержка клика: §e" + ms + " мс"));
-            }
+        Button delayDown = Button.builder(
+                Component.literal("§e- §7Задержка: §e" + config.clickDelayMs + " мс"),
+                btn -> {
+                    config.clickDelayMs = Math.max(50, config.clickDelayMs - 50);
+                    config.save();
+                    updateDelayButtons();
+                }
+        ).bounds(centerX - buttonWidth / 2, bottomY, buttonWidth / 2 - 2, buttonHeight).build();
+        this.addRenderableWidget(delayDown);
 
-            @Override
-            protected void applyValue() {
-                config.clickDelayMs = (int)(50 + value * 950);
-                config.save();
-            }
-        };
-        this.addDrawableChild(delaySlider);
+        Button delayUp = Button.builder(
+                Component.literal("§e+"),
+                btn -> {
+                    config.clickDelayMs = Math.min(1000, config.clickDelayMs + 50);
+                    config.save();
+                    updateDelayButtons();
+                }
+        ).bounds(centerX + 2, bottomY, buttonWidth / 2 - 2, buttonHeight).build();
+        this.addRenderableWidget(delayUp);
 
-        ButtonWidget closeButton = ButtonWidget.builder(
-                Text.literal("§7◄ Закрыть"),
-                btn -> this.close()
-        ).dimensions(centerX - 60, bottomY + 40, 120, 20).build();
-        this.addDrawableChild(closeButton);
+        Button closeButton = Button.builder(
+                Component.literal("§7◄ Закрыть"),
+                btn -> this.onClose()
+        ).bounds(centerX - 60, bottomY + 40, 120, 20).build();
+        this.addRenderableWidget(closeButton);
+    }
+
+    private void updateDelayButtons() {
+        this.clearWidgets();
+        this.init();
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
-        int centerX   = this.width / 2;
-        int panelWidth = 320;
+        int centerX    = this.width / 2;
+        int panelWidth  = 320;
         int panelHeight = this.height - 40;
         int panelX = centerX - panelWidth / 2;
         int panelY = 20;
 
-        context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, COLOR_PANEL);
-        context.fill(panelX, panelY, panelX + panelWidth, panelY + 50, COLOR_ACCENT);
-        context.fill(panelX, panelY + 50, panelX + panelWidth, panelY + 52, COLOR_GREEN);
+        guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, COLOR_PANEL);
+        guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + 50, COLOR_ACCENT);
+        guiGraphics.fill(panelX, panelY + 50, panelX + panelWidth, panelY + 52, COLOR_GREEN);
 
-        context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("⚡ AUTOLOOT MACE").styled(s -> s.withColor(0xFFD700).withBold(true)),
-                centerX, panelY + 12, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("Авто-выбивание лута из хранилищ").styled(s -> s.withColor(0xFFAAAAAA)),
-                centerX, panelY + 28, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(this.font,
+                Component.literal("⚡ AUTOLOOT MACE"),
+                centerX, panelY + 12, 0xFFD700);
+        guiGraphics.drawCenteredString(this.font,
+                Component.literal("Авто-выбивание лута из хранилищ"),
+                centerX, panelY + 28, 0xAAAAAA);
 
-        context.drawTextWithShadow(this.textRenderer,
-                Text.literal("━━ НАСТРОЙКА ЛУТА ━━").styled(s -> s.withColor(0xFF00D4AA)),
-                panelX + 20, 110, 0xFFFFFFFF);
+        guiGraphics.drawString(this.font,
+                Component.literal("━━ НАСТРОЙКА ЛУТА ━━"),
+                panelX + 20, 110, 0x00D4AA);
 
-        context.drawTextWithShadow(this.textRenderer,
-                Text.literal("━━ ПАРАМЕТРЫ ━━").styled(s -> s.withColor(0xFF00D4AA)),
-                panelX + 20, 80 + 30 + 20 + (ModConfig.AVAILABLE_ITEMS.size() * 30) + 10, 0xFFFFFFFF);
+        guiGraphics.drawString(this.font,
+                Component.literal("━━ ЗАДЕРЖКА КЛИКА ━━"),
+                panelX + 20, 80 + 30 + 20 + (ModConfig.AVAILABLE_ITEMS.size() * 30) + 10, 0x00D4AA);
 
         String statusText = config.modEnabled ? "§aВКЛЮЧЁН ✓" : "§cОТКЛЮЧЁН ✗";
-        context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("Статус мода: " + statusText),
-                centerX, panelY + panelHeight - 20, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(this.font,
+                Component.literal("Статус мода: " + statusText),
+                centerX, panelY + panelHeight - 20, 0xFFFFFF);
 
-        super.render(context, mouseX, mouseY, delta);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    private Text getEnableText() {
+    private Component getEnableText() {
         if (config.modEnabled) {
-            return Text.literal("§a● МОД ВКЛЮЧЁН  §7[нажать для отключения]");
+            return Component.literal("§a● МОД ВКЛЮЧЁН  §7[нажать для отключения]");
         } else {
-            return Text.literal("§c○ МОД ВЫКЛЮЧЕН §7[нажать для включения]");
+            return Component.literal("§c○ МОД ВЫКЛЮЧЕН §7[нажать для включения]");
         }
     }
 
-    private Text getItemText(String itemId, String itemName) {
+    private Component getItemText(String itemId, String itemName) {
         boolean enabled = config.isItemEnabled(itemId);
         String emoji = getItemEmoji(itemId);
         if (enabled) {
-            return Text.literal("§a✓ §f" + emoji + " " + itemName + " §7[авто-выбивание ВКЛ]");
+            return Component.literal("§a✓ §f" + emoji + " " + itemName + " §7[ВКЛ]");
         } else {
-            return Text.literal("§c✗ §7" + emoji + " " + itemName + " [авто-выбивание ВЫКЛ]");
+            return Component.literal("§c✗ §7" + emoji + " " + itemName + " [ВЫКЛ]");
         }
     }
 
     private String getItemEmoji(String itemId) {
         return switch (itemId) {
-            case "minecraft:breeze_rod"     -> "🌪";
-            case "minecraft:ominous_bottle" -> "🧪";
-            case "minecraft:mace"           -> "🔨";
-            case "minecraft:wind_charge"    -> "💨";
-            case "minecraft:heavy_core"     -> "⚙";
+            case "minecraft:breeze_rod"             -> "🌪";
+            case "minecraft:ominous_bottle"         -> "🧪";
+            case "minecraft:mace"                   -> "🔨";
+            case "minecraft:wind_charge"            -> "💨";
+            case "minecraft:heavy_core"             -> "⚙";
+            case "minecraft:enchanted_golden_apple" -> "🍎";
             default -> "◆";
         };
     }
 
     @Override
-    public void close() {
-        this.client.setScreen(parent);
+    public void onClose() {
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }
