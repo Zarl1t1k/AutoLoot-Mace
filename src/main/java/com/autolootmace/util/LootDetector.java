@@ -1,31 +1,31 @@
 package com.autolootmace.util;
 
 import com.autolootmace.config.ModConfig;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.registry.Registries;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class LootDetector {
 
-    public static List<Integer> findTargetSlots(HandledScreen<?> screen) {
+    public static List<Integer> findTargetSlots(AbstractContainerScreen<?> screen) {
         List<Integer> targetSlots = new ArrayList<>();
         ModConfig config = ModConfig.getInstance();
 
         if (!config.modEnabled) return targetSlots;
 
-        ScreenHandler handler = screen.getScreenHandler();
-        List<Slot> slots = handler.slots;
+        AbstractContainerMenu menu = screen.getMenu();
+        List<Slot> slots = menu.slots;
 
         for (int i = 0; i < slots.size(); i++) {
             Slot slot = slots.get(i);
-            if (!slot.hasStack()) continue;
+            if (!slot.hasItem()) continue;
 
-            ItemStack stack = slot.getStack();
+            ItemStack stack = slot.getItem();
             String itemId = getItemId(stack);
 
             if (itemId != null && config.isItemEnabled(itemId)) {
@@ -38,10 +38,10 @@ public class LootDetector {
 
     public static String getItemId(ItemStack stack) {
         if (stack.isEmpty()) return null;
-        return Registries.ITEM.getId(stack.getItem()).toString();
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
     }
 
-    public static boolean isContainerScreen(HandledScreen<?> screen) {
-        return screen.getScreenHandler().slots.size() > 36;
+    public static boolean isContainerScreen(AbstractContainerScreen<?> screen) {
+        return screen.getMenu().slots.size() > 36;
     }
 }
