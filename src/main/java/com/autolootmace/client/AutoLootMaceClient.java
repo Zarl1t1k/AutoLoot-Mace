@@ -4,59 +4,59 @@ import com.autolootmace.config.ModConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class AutoLootMaceClient implements ClientModInitializer {
 
-    public static KeyBinding configKey;
-    public static KeyBinding toggleKey;
+    public static KeyMapping configKey;
+    public static KeyMapping toggleKey;
 
     @Override
     public void onInitializeClient() {
-        // Загружаем конфиг
         ModConfig.getInstance();
 
-        // Регистрируем клавишу открытия настроек (по умолчанию M)
-        configKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        configKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.autolootmace.config",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_M,
                 "category.autolootmace"
         ));
 
-        // Регистрируем клавишу быстрого вкл/выкл (по умолчанию N)
-        toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+        toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.autolootmace.toggle",
-                InputUtil.Type.KEYSYM,
+                InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_N,
                 "category.autolootmace"
         ));
 
-        // Обработка нажатий клавиш
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (configKey.wasPressed()) {
-                if (client.currentScreen == null) {
+            while (configKey.consumeClick()) {
+                if (client.screen == null) {
                     client.setScreen(new ConfigScreen(null));
                 }
             }
 
-            if (toggleKey.wasPressed()) {
+            while (toggleKey.consumeClick()) {
                 ModConfig config = ModConfig.getInstance();
                 config.modEnabled = !config.modEnabled;
                 config.save();
 
                 if (client.player != null) {
                     String status = config.modEnabled ? "§aВКЛЮЧЁН ✓" : "§cОТКЛЮЧЁН ✗";
-                    client.player.sendMessage(
-                            net.minecraft.text.Text.literal("§6[AutoLoot Mace] §fМод " + status),
+                    client.player.displayClientMessage(
+                            Component.literal("§6[AutoLoot Mace] §fМод " + status),
                             true
                     );
                 }
             }
         });
 
+        System.out.println("[AutoLoot Mace] Мод загружен! Клавиша настроек: M | Вкл/Выкл: N");
+    }
+}
         System.out.println("[AutoLoot Mace] Мод загружен! Клавиша настроек: M | Вкл/Выкл: N");
     }
 }
