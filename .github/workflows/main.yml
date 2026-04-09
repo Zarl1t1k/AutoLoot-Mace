@@ -40,6 +40,8 @@ jobs:
 
       - name: Собрать мод
         run: ./gradlew build --no-daemon
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2g"
 
       - name: Загрузить .jar
         uses: actions/upload-artifact@v4
